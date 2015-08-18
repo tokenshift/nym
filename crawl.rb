@@ -38,15 +38,20 @@ backlog = if CRAWL_URLS.empty? then Set.new(START_URLS) else Set.new(CRAWL_URLS)
 
 until backlog.empty?
   url = backlog.first
+  STDERR.puts "CRAWLING (#{crawled.length}/#{backlog.length+crawled.length}) #{url}"
+
   backlog.delete(url)
   crawled.add(url)
 
-  STDERR.puts "CRAWLING #{url}"
   doc = Nokogiri::HTML(open(url))
 
   # Look for name info on the page.
   if %r{http://(www|surnames).behindthename.com/name/[^/]*$}.match(url)
     name = %r{of the (?:sur)?name (.*)}i.match(doc.title)[1].strip
+
+    if /surnames/.match(url)
+      puts "#{name}\nSurname"
+    end
 
     doc.css(".nameinfo > .namesub").each do |info|
       key = info.css(".namesub").text.strip
