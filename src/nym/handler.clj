@@ -1,11 +1,13 @@
 (ns nym.handler
   (:require [clojure.tools.logging :as log]
+            [compojure.coercions :refer [as-int]]
             [compojure.core :refer :all]
             [compojure.route :as route]
             [environ.core :refer [env]]
             [nym.db :as db]
             [ring.middleware.basic-authentication :refer [basic-authentication-request]]
             [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.params :refer [wrap-params]]
             [ring.util.response :refer [response status]]))
 
 (defprotocol NymService
@@ -41,12 +43,12 @@
       (status (response {:success false
                          :error "NOT FOUND"})
               404)))
-  (get-words [this {:keys [offset limit query tags]}]
-    (let [words (db/all-words nym-db)
-          words (if offset (drop (Integer. offset) words) words)
-          words (if limit  (take (Integer. limit) words) words)]
-      (response {:success true
-                 :words words})))
+  (get-words [this {:strs [offset limit query tags] :or {offset 0 limit 10} :as params}]
+    (response {:success true
+               :words (->> (db/all-words nym-db)
+                           (sort-by :word)
+                           (drop (Integer. offset))
+                           (take (Integer. limit)))}))
   (random-word [this options]
     (let [words (db/all-words nym-db)
           word  (nth words (rand-int (count words)))]
@@ -120,6 +122,7 @@
     (-> (app-routes nym-service)
         (wrap-is-admin)
         (wrap-basic-auth)
+        (wrap-params)
         (wrap-json-response)
         (wrap-log-requests))))
 
