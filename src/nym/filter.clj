@@ -1,4 +1,32 @@
-(ns nym.filter)
+(ns nym.filter
+  (:require [clojure.string :as string]))
+
+(declare match-anywhere? match-beginning?)
+
+(defn- match-anywhere?
+  "Looks for the next match anywhere in the input string."
+  [[match & ms] input]
+  {:pre [(string? match) (string? input)]}
+  (if (= "*" match)
+    (or (empty? ms) (match-anywhere? ms input))
+    (let [i (.indexOf input match)]
+      (if (> i -1)
+        (if (empty? ms)
+          (= (.length input) (+ i (.length match)))
+          (match-beginning? ms (.substring input (+ i (.length match)))))
+        false))))
+
+(defn- match-beginning?
+  "Looks for the next match at the beginning of the input string."
+  [[match & ms] input]
+  {:pre [(string? match) (string? input)]}
+  (if (= "*" match)
+    (or (empty? ms) (match-anywhere? ms input))
+    (if (.startsWith input match)
+      (if (empty? ms)
+        (= (.length input) (.length match))
+        (match-beginning? ms (.substring input (.length match))))
+      false)))
 
 (defn make-word-filter
   "Returns a predicate that will match input strings against the specified filter.
@@ -7,8 +35,15 @@
   the query string; a query without any asterisks will match if it is found at
   the beginning of the test word (that is, 'filter' is equivalent to 'filter*')."
   [query]
-  (fn [word]
-    false))
+  {:pre [(string? query)]}
+  (let [query (if (.contains query "*") query (str query "*"))
+        matchers (->> (re-seq #"([^\*]+)|\*" query)
+                      (map first))]
+    ; e.g. "Wha*te**ver*" => ("Wha" "*" "te" "*" "*" "ver" "*")
+    ; or "Testing" => ("Testing" "*")
+    (fn [word]
+    {:pre [(string? word)]}
+      (match-beginning? matchers word))))
 
 (defn make-tags-filter
   "Returns a predicate that will match a set of tags against the specified filter.
