@@ -10,7 +10,8 @@
                  [compojure "1.4.0"]
                  [ring/ring-defaults "0.1.2"]
                  [ring/ring-json "0.4.0"]
-                 [ring-basic-authentication "1.0.5"]]
+                 [ring-basic-authentication "1.0.5"]
+                 [pandect "0.5.3"]]
   :plugins [[lein-ring "0.8.13"]]
   :ring {:handler nym.handler/app}
   :profiles

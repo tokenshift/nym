@@ -5,6 +5,7 @@
             [environ.core :refer [env]]
             [nym.db :refer [->PersistedMemDB]]
             [nym.service :refer :all]
+            [pandect.algo.sha512 :refer [sha512]]
             [ring.middleware.basic-authentication :refer [basic-authentication-request]]
             [ring.middleware.json :refer [wrap-json-response]]
             [ring.middleware.params :refer [wrap-params]]
@@ -18,10 +19,12 @@
 (defn wrap-is-admin
   [handler]
   (fn [req]
-    (handler (assoc req :is-admin (and (= (:admin-username env)
-                                          (first (:basic-authentication req)))
-                                       (= (:admin-password env)
-                                          (second (:basic-authentication req))))))))
+    (handler (assoc req :is-admin
+                    (and (= (:admin-username env)
+                            (first (:basic-authentication req)))
+                         (= (:admin-password-hash env)
+                            (sha512 (str (second (:basic-authentication req))
+                                         (:admin-password-salt env)))))))))
 
 (defn wrap-require-admin
   "Returns a 401 or 403 if the user isn't an admin."
