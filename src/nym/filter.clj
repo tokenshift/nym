@@ -1,5 +1,8 @@
 (ns nym.filter
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string]
+            [instaparse.core :as insta]))
+
+;; Word Filters
 
 (declare match-anywhere? match-beginning?)
 
@@ -45,16 +48,84 @@
     {:pre [(string? word)]}
       (match-beginning? matchers word))))
 
-(defn make-tags-filter
-  "Returns a predicate that will match a set of tags against the specified filter.
+;; Tag Filters
 
-  Filter format:
-  `Tag 1` - matches if the tag 'Tag 1' is found.
-  `Tag 1+Tag 2` - matches if 'Tag 1' AND 'Tag 2' were found.
-  `Tag 1|Tag 2` - matches if 'Tag 1' OR 'Tag 2' were found.
-  `Tag 1-Tag 2` - unary '-'; matches if 'Tag 1' and NOT 'Tag 2' were found.
-  `Tag 1+Tag2|(Tag 3-Tag 4) - matches if 'Tag 1' and 'Tag 2', OR 'Tag 3' and not 'Tag 4' were found.
-  Anything that is not a '+', '-', '|', '(', or ')' is assumed to be part of a tag."
+(def parse-tag-filter
+  (insta/parser
+    "filters = filter+
+     filter  = tag | or | and | not
+     or      = <'(' 'or'>  filters <')'>
+     and     = <'(' 'and'> filters <')'>
+     not     = <'(' 'not'> filters <')'>
+     tag     = #'[^,\\(\\)]+'"
+    :auto-whitespace :comma))
+
+; Example filters:
+; "(or (and (not Tag 1) Tag 2) (and Tag 3 (not Tag 4))" =>
+; [:filters
+;   [:filter
+;    [:or
+;     [:filters
+;      [:filter
+;       [:and
+;        [:filters
+;         [:filter [:not [:filters [:filter [:tag "Tag 1"]]]]]
+;         [:filter [:tag "Tag 2"]]]]]
+;      [:filter
+;       [:and
+;        [:filters
+;         [:filter [:tag "Tag 3"]]
+;         [:filter
+;          [:not [:filters [:filter [:tag "Tag 4"]]]]]]]]]]]]
+;
+; "Test Tag" =>
+; [:filters [:filter [:tag "Test Tag"]]]
+;
+; "Tag 1, Tag 2" =>
+; [:filters [:filter [:tag "Tag 1"]]
+;           [:filter [:tag "Tag 2"]]]
+;
+; "(or Tag 1, Tag 2)" =>
+; [:filters
+;   [:filter
+;    [:or
+;     [:filters [:filter [:tag "Tag1"]] [:filter [:tag "Tag2"]]]]]]
+
+(defmulti filter-matches?
+  "Checks a parsed tag filter against a list of tags."
+  (fn [parsed tags] (first parsed)))
+
+(defmethod filter-matches? :default
+  [parsed tags]
+  (throw (UnsupportedOperationException. "Not Implemented")))
+
+(defmethod filter-matches? :filters
+  [[_ & fs] tags]
+  (every? #(filter-matches? % tags) fs))
+
+(defmethod filter-matches? :filter
+  [[_ clause] tags]
+  (filter-matches? clause tags))
+
+(defmethod filter-matches? :tag
+  [[_ tag] tags]
+  (boolean (some #{(string/trim tag)} tags)))
+
+(defmethod filter-matches? :or
+  [[_ [_ & fs]] tags]
+  (boolean (some #(filter-matches? % tags) fs)))
+
+(defmethod filter-matches? :and
+  [[_ fs] tags]
+  (filter-matches? fs tags))
+
+(defmethod filter-matches? :not
+  [[_ [_ & fs]] tags]
+  (not (some #(filter-matches? % tags) fs)))
+
+(defn make-tags-filter
+  "Returns a predicate that will match a set of tags against the specified filter."
   [query]
-  (fn [tags]
-    false))
+  (let [parsed (parse-tag-filter query)]
+    (fn [tags]
+      (filter-matches? parsed tags))))
