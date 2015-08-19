@@ -1,49 +1,41 @@
 (ns nym.db
-  (:require [environ.core :refer [env]]
-            [korma.core :refer :all]
-            [korma.db :refer [defdb sqlite3]]))
+  (:require [clojure.set :refer [difference union]]))
 
-(defdb db (sqlite3 {:db (:db-string env)}))
+(defprotocol NymDB
+  "Storage and retrieval abstraction for words and tags."
+  (all-words [this]           "Returns all words, with associated tags.")
+  (get-tags  [this word]      "Returns the set of tags for a word, or nil.")
+  (add-tags! [this word tags] "Adds tags to a word. The word will be created if
+                               it doesn't exist.")
+  (del-word! [this word]      "Removes the word and all of its tags.")
+  (del-tags! [this word tags] "Removes tags from a word.")
+  (all-tags  [this]           "Lists all known tags."))
 
-(declare names tags name-tags)
+(defprotocol NymDBControl
+  "Additional control functions for a NymDB implementation, used primarily in
+  test and development."
+  (clear! [this] "Clear out all words and tags from the database."))
 
-(defentity names
-  (pk :id)
-  (entity-fields :id :name)
-  (many-to-many tags :name_tags {:lfk :name_id :rfk :tag_id}))
-
-(defentity tags
-  (pk :id)
-  (entity-fields :tag :id)
-  (many-to-many tags :name_tags {:lfk :tag_id :rfk :name_id}))
-
-(defentity name-tags
-  (table :name_tags)
-  (entity-fields :name_id :tag_id))
-
-(defn get-name
-  [name]
-  (first (select names (with tags) (where (= :name name)) (limit 1))))
-
-(defn get-names
+; Creates a new in-memory (transient) DB instance."
+(defn ->MemDB
   []
-  (select names (with tags) (order :name) (limit 10)))
+  (let [db (atom {})]
+    ; The db is a map of words to sets of tags.
+    (reify
+      NymDB
+      (all-words [this]
+        (into [] (for [[word tags] @db] {:word word :tags (or tags (hash-set))})))
+      (get-tags [this word]
+        (get @db word))
+      (add-tags! [this word tags]
+        (swap! db #(update-in % [word] (fn [old-tags] (union (or old-tags (hash-set)) (set tags))))))
+      (del-word! [this word]
+        (swap! db #(dissoc % word)))
+      (del-tags! [this word tags]
+        (swap! db #(update-in % [word] (fn [old-tags] (difference (or old-tags (hash-set)) (set tags))))))
+      (all-tags [this]
+        (->> @db vals (apply union)))
 
-(defn put-name!
-  [name tags]
-  {:pre [(string? name) (every? string? tags)]}
-  nil)
-
-(defn del-name!
-  [name]
-  {:pre [(string? name)]}
-  nil)
-
-(defn del-tags!
-  [name tags]
-  {:pre [(string? name) (every? string? tags)]}
-  nil)
-
-(defn get-tags
-  []
-  nil)
+      NymDBControl
+      (clear! [this]
+        (reset! db {})))))
