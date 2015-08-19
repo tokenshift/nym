@@ -48,7 +48,7 @@
       (response {:success true
                  :words words})))
   (random-word [this options]
-    (let [words (get-words this (select-keys options [:query :tags]))
+    (let [words (db/all-words nym-db)
           word  (nth words (rand-int (count words)))]
       (if word
         (response {:success true
@@ -60,9 +60,11 @@
     (db/del-word! nym-db word)
     (response {:success true}))
   (del-tags [this word tags]
-    (db/del-tags! nym-db word tags))
+    (db/del-tags! nym-db word tags)
+    (response {:success true}))
   (put-word [this word tags]
-    (db/add-tags! nym-db word tags))
+    (db/add-tags! nym-db word tags)
+    (response {:success true}))
   (get-tags [this]
     (response {:success true
                :tags (db/all-tags nym-db)})))
@@ -113,7 +115,7 @@
 
 (defn new-app
   []
-  (let [db (db/->MemDB)
+  (let [db (db/->PersistedMemDB "names.txt")
         nym-service (->NymServiceImpl db)]
     (-> (app-routes nym-service)
         (wrap-is-admin)
