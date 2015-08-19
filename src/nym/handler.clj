@@ -8,10 +8,16 @@
             [ring.middleware.json :refer [wrap-json-response]]
             [ring.util.response :refer [response status]]))
 
+(defn name-response
+  "Maps a DB name (with tags) to a response object."
+  [ent]
+  {:name (:name ent)
+   :tags (map :tag (:tags ent))})
+
 (defn get-name
   "Return an individual name."
   [req]
-  (response (db/get-name (:name (:route-params req)))))
+  (response (name-response (db/get-name (:name (:route-params req))))))
 
 (defn put-name
   "Create/update a name."
@@ -59,7 +65,7 @@
     (handler req)))
 
 (defroutes app-routes
-  (GET "/names" [] (response {:success true :names (db/get-names)}))
+  (GET "/names" [] (response {:success true :names (map name-response (db/get-names))}))
   (context "/names" []
     (GET "/:name" [] get-name)
     (PUT "/:name" [] (wrap-require-admin put-name))

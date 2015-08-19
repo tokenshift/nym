@@ -1,57 +1,49 @@
 (ns nym.db
-  (:require [clojure.set :refer [difference union]]))
+  (:require [environ.core :refer [env]]
+            [korma.core :refer :all]
+            [korma.db :refer [defdb sqlite3]]))
 
-; Some sample data until I get sqlite hooked up.
-(def db (atom {"Abasolo"       #{"Surname" "Basque"}
-               "Abatangelo"    #{"Surname" "Italian"}
-               "Abatantuono"   #{"Surname" "Italian"}
-               "Abate"         #{"Surname" "Italian"}
-               "Abategiovanni" #{"Surname" "Italian"}
-               "Abatescianni"  #{"Surname" "Italian"}
-               "Abbadelli"     #{"Surname" "Italian"}
-               "Abbas"         #{"Male" "Arabic" "Persian"}
-               "Abbascia"      #{"Surname" "Italian"}
-               "Abbatangelo"   #{"Surname" "Italian"}
-               "Abbatantuono"  #{"Surname" "Italian"}
-               "Abbate"        #{"Surname" "Italian"}
-               "Abbatelli"     #{"Surname" "Italian"}
-               "Abbaticchio"   #{"Surname" "Italian"}
-               "Abbe"          #{"Male" "Frisian"}
-               "Abbes"         #{"Surname" "Dutch"}
-               "Abbey"         #{"Female" "English" "Surname"}
-               "Abbi"          #{"Female" "English"}
-               "Abbiati"       #{"Surname" "Italian"}
-               "Abbie"         #{"Female" "English"}
-               "Abbing"        #{"Surname"}}))
+(defdb db (sqlite3 {:db (:db-string env)}))
 
-(defn- to-name-object
-  [name tags])
+(declare names tags name-tags)
+
+(defentity names
+  (pk :id)
+  (entity-fields :id :name)
+  (many-to-many tags :name_tags {:lfk :name_id :rfk :tag_id}))
+
+(defentity tags
+  (pk :id)
+  (entity-fields :tag :id)
+  (many-to-many tags :name_tags {:lfk :tag_id :rfk :name_id}))
+
+(defentity name-tags
+  (table :name_tags)
+  (entity-fields :name_id :tag_id))
 
 (defn get-name
   [name]
-  {:pre [(string? name)]}
-  (when (contains? @db name) {:name name :tags (get @db name)}))
+  (first (select names (with tags) (where (= :name name)) (limit 1))))
 
 (defn get-names
   []
-  (sort-by :name (into [] (for [[k v] @db] {:name k :tags v}))))
+  (select names (with tags) (order :name) (limit 10)))
 
 (defn put-name!
   [name tags]
   {:pre [(string? name) (every? string? tags)]}
-  (swap! db #(update-in % [name] (fn [old-tags] (union old-tags (set tags)))))
-  (println @db))
+  nil)
 
 (defn del-name!
   [name]
   {:pre [(string? name)]}
-  (swap! db #(dissoc % name)))
+  nil)
 
 (defn del-tags!
   [name tags]
   {:pre [(string? name) (every? string? tags)]}
-  (swap! db #(update-in % [name] (fn [old-tags] (difference old-tags tags)))))
+  nil)
 
 (defn get-tags
   []
-  (sort (apply union (vals @db))))
+  nil)
