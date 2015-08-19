@@ -25,9 +25,15 @@ FOLLOW_PATTERNS = [
 STOP_PATTERNS = [
   %r{/name/.*?/comments},
   %r{/name/.*?/images},
+  %r{/name/.*?/namedays},
+  %r{/name/.*?/namesakes},
+  %r{/name/.*?/notes},
   %r{/name/.*?/rating},
   %r{/name/.*?/references},
   %r{/name/.*?/related},
+  %r{/name/.*?/submitted},
+  %r{/name/.*?/top},
+  %r{/name/.*?/top/.*},
   %r{/name/.*?/tree},
   %r{/name/.*?/websites},
   %r{/contribute.php}
