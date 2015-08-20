@@ -1,5 +1,6 @@
 (ns nym.service
   (:require [nym.db :as db]
+            [nym.filter :refer [make-word-filter make-tags-filter]]
             [ring.util.response :refer [response status]]))
 
 (defprotocol NymService
@@ -7,13 +8,13 @@
   (get-word [this word]       "Returns a word with any associated tags.")
   (get-words [this options]   "Returns a list of words with associated tags.
                               Supported options:
-                              * :offset, :limit (NOT YET IMPLEMENTED)
+                              * :offset, :limit
                                 Control paging. Offset is 0-based.
-                              * :query (NOT YET IMPLEMENTED)
+                              * :query
                                 A glob-style string to match words by. For example,
                                 'word*' would match 'word', 'words', or 'wordy',
                                 but not 'unword'.
-                              * :tags (NOT YET IMPLEMENTED)
+                              * :tags
                                 Filters returned words by tags. Accepts a TBD grammar
                                 of boolean operations on tags.")
   (random-word [this options] "Returns a single random word from the dictionary.
@@ -23,6 +24,18 @@
   (del-tags [this word tags]  "Removes the listed tags from a word.")
   (put-word [this word tags]  "Adds a word and its tags to the dictionary.")
   (get-tags [this]            "Lists all known tags."))
+
+(defn- get-db-words
+  "Retrieves words from the DB, handling offset, limit, query and tag filters."
+  [nym-db {:strs [offset limit query tags] :or {offset 0}}]
+  (let [word-filter (if query (make-word-filter query) (constantly true))
+        tags-filter (if tags  (make-tags-filter tags)  (constantly true))
+        words (->> (db/all-words nym-db)
+                   (filter #(word-filter (:word %)))
+                   (filter #(tags-filter (:tags %)))
+                   (sort-by :word)
+                   (drop (Integer. offset)))]
+    (if limit (take (Integer. limit) words) words)))
 
 ; Stores and retrieves word and tag information using the provided NymDB.
 (defrecord NymServiceImpl [nym-db]
@@ -37,10 +50,7 @@
               404)))
   (get-words [this {:strs [offset limit query tags] :or {offset 0 limit 10} :as params}]
     (response {:success true
-               :words (->> (db/all-words nym-db)
-                           (sort-by :word)
-                           (drop (Integer. offset))
-                           (take (Integer. limit)))}))
+               :words (get-db-words nym-db (assoc params "limit" limit))}))
   (random-word [this options]
     (let [words (db/all-words nym-db)
           word  (nth words (rand-int (count words)))]
