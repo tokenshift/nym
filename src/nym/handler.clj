@@ -37,7 +37,10 @@
 (defn wrap-log-requests
   [handler]
   (fn [req]
-    (log/info (:request-method req) (:uri req))
+    (log/info (:request-method req)
+              (if (:query-string req)
+                (str (:uri req) "?" (:query-string req))
+                (:uri req)))
     (handler req)))
 
 

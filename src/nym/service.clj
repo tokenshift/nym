@@ -52,7 +52,7 @@
     (response {:success true
                :words (get-db-words nym-db (assoc params "limit" limit))}))
   (random-word [this options]
-    (let [words (db/all-words nym-db)
+    (let [words (get-db-words nym-db (select-keys options ["query" "tags"]))
           word  (nth words (rand-int (count words)))]
       (if word
         (response {:success true
