@@ -65,4 +65,13 @@
         (is (some #{"testing"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))
         (is (some #{"tested"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))
         (is (some #{"test something else"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))
-        (is (some #{"testing another thing"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))))))
+        (is (some #{"testing another thing"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))))
+    (testing "tags"
+      (let [db (->MemDB)
+            svc (->NymServiceImpl db)
+            tag-filter "(or (and (not Tag 1, Tag 2) Tag 3, Tag 4) (and Tag 5, Tag 6 (not Tag 7, Tag 8, Tag 9)))"]
+        (db/add-tags! db "word1" ["Tag 5" "Tag 6" "Tag 7"])
+        (db/add-tags! db "word2" ["Tag 0" "Tag 3" "Tag 4" "Tag 5" "Tag 6" "Tag 7" "Tag 8" "Tag 9" "Tag 10"])
+        (db/add-tags! db "word3" ["Tag 6"])
+        (is (= 1 (count (-> (get-words svc {"tags" tag-filter}) :body :words))))
+        (is (some #{"word2"} (map :word (-> (get-words svc {"tags" tag-filter}) :body :words))))))))
