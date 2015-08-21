@@ -9,3 +9,6 @@ pom.xml.asc
 /.lein-*
 /.nrepl-port
 names.txt*
+*.crt
+*.key
+.vagrant/
