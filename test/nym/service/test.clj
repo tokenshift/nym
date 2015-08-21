@@ -20,8 +20,12 @@
   (testing "get-words"
     (let [db (->MemDB)
           svc (->NymServiceImpl db)]
+      (is (:success (:body (get-words svc {}))))
+      (is (= 0 (:count (:body (get-words svc {})))))
+      (is (empty? (:words (:body (get-words svc {})))))
       (doseq [x (range 0 10)]
         (db/add-tags! db (str "word" x) [(str "tag" x)]))
+      (is (= 10 (:count (:body (get-words svc {})))))
       (is (some #{"word0"} (map :word (-> (get-words svc {}) :body :words))))
       (is (some #{"word1"} (map :word (-> (get-words svc {}) :body :words))))
       (is (some #{"word2"} (map :word (-> (get-words svc {}) :body :words))))
@@ -37,17 +41,27 @@
             svc (->NymServiceImpl db)]
         (doseq [x (range 0 50)]
           (db/add-tags! db (format "word%02d" x) [(format "tag%02d" x)]))
+        (= 50 (:count (:body (get-words svc {}))))
         ; Limit defaults to 10
         (is (= 10 (count (-> (get-words svc {}) :body :words))))
+        (is (= 10 (:limit (:body (get-words svc {})))))
         ; Offset defaults to 0
+        (is (= 0 (:offset (:body (get-words svc {})))))
         (is (some #{"word00"} (map :word (-> (get-words svc {}) :body :words))))
         (is (not (some #{"word10"} (map :word (-> (get-words svc {}) :body :words)))))
         ; Both can be changed
+        (is (= 5 (:limit (:body (get-words svc {"limit" 5})))))
         (is (= 5 (count (-> (get-words svc {"limit" 5}) :body :words))))
         (is (not (some #{"word00"} (map :word (-> (get-words svc {"offset" 1}) :body :words)))))
+        (is (= 1 (:offset (:body (get-words svc {"offset" 1})))))
         (is (some #{"word01"} (map :word (-> (get-words svc {"offset" 1}) :body :words))))
         (is (some #{"word10"} (map :word (-> (get-words svc {"offset" 1}) :body :words))))
-        (is (not (some #{"word11"} (map :word (-> (get-words svc {"offset" 1}) :body :words)))))))
+        (is (not (some #{"word11"} (map :word (-> (get-words svc {"offset" 1}) :body :words)))))
+        ; Offset + limit past the end works fine.
+        (is (= 50 (:count (:body (get-words svc {"limit" 100})))))
+        (is (= 50 (count (:words (:body (get-words svc {"limit" 100}))))))
+        (is (= 50 (:count (:body (get-words svc {"offset" 60})))))
+        (is (= 0 (count (:words (:body (get-words svc {"offset" 60}))))))))
     (testing "query"
       (let [db (->MemDB)
             svc (->NymServiceImpl db)]
@@ -60,7 +74,10 @@
         (db/add-tags! db "yet another test" [])
         (db/add-tags! db "atest" [])
         (db/add-tags! db "atestb" [])
-        (is (= 5 (count (-> (get-words svc {"query" "test"}) :body :words))))
+        (is (= 5 (:count (:body (get-words svc {"query" "test"})))))
+        (is (= 5 (count (:words (:body (get-words svc {"query" "test" "offset" 3}))))))
+        (is (= 5 (:count (:body (get-words svc {"query" "test" "offset" 3})))))
+        (is (= 2 (count (:words (:body (get-words svc {"query" "test" "offset" 3}))))))
         (is (some #{"test"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))
         (is (some #{"testing"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))
         (is (some #{"tested"} (map :word (-> (get-words svc {"query" "test"}) :body :words))))
@@ -74,4 +91,18 @@
         (db/add-tags! db "word2" ["Tag 0" "Tag 3" "Tag 4" "Tag 5" "Tag 6" "Tag 7" "Tag 8" "Tag 9" "Tag 10"])
         (db/add-tags! db "word3" ["Tag 6"])
         (is (= 1 (count (-> (get-words svc {"tags" tag-filter}) :body :words))))
-        (is (some #{"word2"} (map :word (-> (get-words svc {"tags" tag-filter}) :body :words))))))))
+        (is (some #{"word2"} (map :word (-> (get-words svc {"tags" tag-filter}) :body :words)))))))
+  (testing "random-word"
+    (let [db (->MemDB)
+          svc (->NymServiceImpl db)]
+      ; With no matches, should return a 404.
+      (is (nil? (:word (:body (random-word svc {})))))
+      (is (= 404 (:status (random-word svc {}))))
+      (is (= 0 (:count (:body (random-word svc {})))))
+      ; Otherwise, should return one of the words.
+      (db/add-tags! db "word1" [])
+      (db/add-tags! db "word2" [])
+      (db/add-tags! db "word3" [])
+      (is (not (nil? (:word (:body (random-word svc {}))))))
+      (is (some #{"word1" "word2" "word3"} (:word (:body (random-word svc {})))))
+      (is (= 3 (:count (:body (random-word svc {}))))))))
