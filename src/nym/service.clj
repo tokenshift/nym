@@ -33,9 +33,14 @@
         words (->> (db/all-words nym-db)
                    (filter #(word-filter (:word %)))
                    (filter #(tags-filter (:tags %)))
-                   (sort-by :word)
-                   (drop (Integer. offset)))]
-    (if limit (take (Integer. limit) words) words)))
+                   (sort-by :word))
+        word-count (count words)
+        words (drop (Integer. offset) words)
+        words (if limit (take (Integer. limit) words) words)]
+    {:count word-count
+     :offset offset
+     :limit limit
+     :words words}))
 
 ; Stores and retrieves word and tag information using the provided NymDB.
 (defrecord NymServiceImpl [nym-db]
@@ -49,17 +54,20 @@
                          :error "NOT FOUND"})
               404)))
   (get-words [this {:strs [offset limit query tags] :or {offset 0 limit 10} :as params}]
-    (response {:success true
-               :words (get-db-words nym-db (assoc params "limit" limit))}))
+    (let [{:keys [count words]} (get-db-words nym-db (assoc params "limit" limit))]
+      (response (assoc (get-db-words nym-db (assoc params "limit" limit))
+                       :success true))))
   (random-word [this options]
-    (let [words (get-db-words nym-db (select-keys options ["query" "tags"]))
-          word  (nth words (rand-int (count words)))]
+    (let [{:keys [count words]} (get-db-words nym-db (select-keys options ["query" "tags"]))
+          word (when (> count 0) (nth words (rand-int count)))]
       (if word
         (response {:success true
+                   :count count
                    :word word})
         (status (response {:success false
-                           :error "NO DATA"})
-                500))))
+                           :count 0
+                           :error "NOT FOUND"})
+                404))))
   (del-word [this word]
     (db/del-word! nym-db word)
     (response {:success true}))
