@@ -1,6 +1,6 @@
 # Nym
 
-Name database and random name generator.
+Name/word database and random name generator.
 
 ## Running
 
@@ -14,16 +14,26 @@ To start a web server for the application, run:
 
 ## Endpoints
 
-  * GET `/names`
-    Returns all names, with their tags.
-    Names can be filtered by tags; TODO: specification for tag filters.
-  * PUT `/names/{name}`
-    Creates a name, if it does not already exist.
-  * DELETE `/names/{name}`
-    Deletes a name.
-  * PUT `/names/{name}/{tag}`
-    Adds a tag to a name, creating both if necessary.
-  * DELETE `/names/{name}/{tag}`
+  * GET `/`
+    Returns a random word.
+    Parameters:
+      * `query`, `tags` - Filter what words to return. See Filters, below.
+  * GET `/words`
+    Returns all words, with their tags.
+    Parameters:
+      * `offset`, `limit` - Control paging. Offset is 0-based.
+      * `query`, `tags` - Filter what words to return. See Filters, below.
+  * PUT `/words/{word}`
+    Creates a word, if it does not already exist.
+  * DELETE `/words/{word}`
+    Deletes a word.
+  * PUT `/words/{word}/{tag}`
+    Adds a tag to a word, creating both if necessary.
+  * DELETE `/words/{word}/{tag}`
     Removes a tag from a name.
   * GET `/tags`
-    Returns all tags (without names).
+    Returns all tags (without associated words).
+
+## Filters
+
+TODO
