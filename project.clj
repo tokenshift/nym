@@ -6,6 +6,7 @@
                  [instaparse "1.4.1"]
                  [me.raynes/fs "1.4.6"]
                  [org.clojure/clojure "1.6.0"]
+                 [org.clojure/data.json "0.2.6"]
                  [org.clojure/tools.logging "0.3.1"]
                  [compojure "1.4.0"]
                  [ring/ring-defaults "0.1.2"]

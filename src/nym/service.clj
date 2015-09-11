@@ -1,5 +1,6 @@
 (ns nym.service
-  (:require [nym.db :as db]
+  (:require [clojure.data.json :as json]
+            [nym.db :as db]
             [nym.filter :refer [make-word-filter make-tags-filter]]
             [ring.util.response :refer [response status]]))
 
@@ -20,6 +21,10 @@
   (random-words [this options] "Returns random words from the dictionary.
                                 Accepts the same :query, :tags, and :limit
                                 options as get-words (but not :offset).")
+  (random-word-stream [this options] "Returns an infinite sequence of random
+                                      words from the dictionary. Accepts the
+                                      same :query and :tags options as get-words
+                                      (but not :limit and :offset).")
   (del-word [this word]       "Removes a word (and all of its tags) from the dictionary.")
   (del-tags [this word tags]  "Removes the listed tags from a word.")
   (put-word [this word tags]  "Adds a word and its tags to the dictionary.")
@@ -56,6 +61,9 @@
   (get-words [this {:strs [offset limit query tags] :or {offset 0 limit 10} :as params}]
     (response (assoc (get-db-words nym-db (assoc params "limit" limit))
                      :success true)))
+  (random-word-stream [this params]
+    (let [{:keys [count words]} (get-db-words nym-db (select-keys params ["query" "tags"]))]
+      (response (repeatedly #(str (json/write-str (when (> count 0) (nth words (rand-int count)))) "\n")))))
   (random-words [this {:strs [limit query tags] :or {limit 10} :as params}]
     (let [{:keys [count words]} (get-db-words nym-db (select-keys params ["query" "tags"]))]
       (response {:count count

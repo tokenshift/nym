@@ -17,7 +17,7 @@ To start a web server for the application, run:
   * GET `/`
     Returns random words.
     Parameters:
-      * `offset`, `limit` - Control paging. Offset is 0-based.
+      * `limit` - Limits the number of results to return. Defaults to 10.
       * `query`, `tags` - Filter what words to return. See Filters, below.
   * GET `/words`
     Returns all words, with their tags.
@@ -34,6 +34,10 @@ To start a web server for the application, run:
     Removes a tag from a name.
   * GET `/tags`
     Returns all tags (without associated words).
+  * GET `/random`
+    Returns a continuous stream of random words.
+    Parameters:
+      * `query`, `tags` - Filter what words to return. See Filters, below.
 
 ## Filters
 

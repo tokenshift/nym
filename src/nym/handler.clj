@@ -1,5 +1,6 @@
 (ns nym.handler
-  (:require [clojure.tools.logging :as log]
+  (:require [clojure.data.json :as json]
+            [clojure.tools.logging :as log]
             [compojure.core :refer :all]
             [compojure.route :as route]
             [environ.core :refer [env]]
@@ -7,9 +8,8 @@
             [nym.service :refer :all]
             [pandect.algo.sha512 :refer [sha512]]
             [ring.middleware.basic-authentication :refer [basic-authentication-request]]
-            [ring.middleware.json :refer [wrap-json-response]]
             [ring.middleware.params :refer [wrap-params]]
-            [ring.util.response :refer [response status]]))
+            [ring.util.response :refer [content-type response status]]))
 
 (defn wrap-basic-auth
   [handler]
@@ -43,6 +43,18 @@
                 (:uri req)))
     (handler req)))
 
+(defn wrap-json-response
+  "Return maps as JSON.
+
+  Based on ring.middleware.json/wrap-json-response, but won't try to serialize
+  a lazy (and potentially infinite) sequence."
+  [handler]
+  (fn [req]
+    (let [res (handler req)]
+      (if (map? (:body res))
+        (-> (update-in res [:body] json/write-str)
+            (content-type "application/json; charset=utf-8"))
+        res))))
 
 (defn app-routes
   "Constructs a handler wrapping a NymService implementation."
@@ -58,6 +70,7 @@
         (PUT "/:tag" [tag] (wrap-require-admin (fn [req] (put-word nym-service word [tag]))))
         (DELETE "/:tag" [tag] (wrap-require-admin (fn [req] (del-tags nym-service word [tag]))))))
     (GET "/tags" [] (get-tags nym-service))
+    (GET "/random" {params :params} (random-word-stream nym-service params))
     (route/not-found (response {:error "NOT FOUND"}))))
 
 (defn new-app
