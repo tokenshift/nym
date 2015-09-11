@@ -48,7 +48,7 @@
   "Constructs a handler wrapping a NymService implementation."
   [nym-service]
   (routes
-    (GET "/" {params :params} (random-word nym-service params))
+    (GET "/" {params :params} (random-words nym-service params))
     (GET "/words" {params :params} (get-words nym-service params))
     (context "/words" []
       (GET "/:word" [word] (get-word nym-service word))

@@ -95,14 +95,10 @@
   (testing "random-word"
     (let [db (->MemDB)
           svc (->NymServiceImpl db)]
-      ; With no matches, should return a 404.
-      (is (nil? (:word (:body (random-word svc {})))))
-      (is (= 404 (:status (random-word svc {}))))
-      (is (= 0 (:count (:body (random-word svc {})))))
-      ; Otherwise, should return one of the words.
       (db/add-tags! db "word1" [])
       (db/add-tags! db "word2" [])
       (db/add-tags! db "word3" [])
-      (is (not (nil? (:word (:body (random-word svc {}))))))
-      (is (#{"word1" "word2" "word3"} (:word (:word (:body (random-word svc {}))))))
-      (is (= 3 (:count (:body (random-word svc {}))))))))
+      (is (not (nil? (:words (:body (random-words svc {}))))))
+      (is (= 3 (count (:words (:body (random-words svc {}))))))
+      (is (every? #{"word1" "word2" "word3"} (map :word (:words (:body (random-words svc {}))))))
+      (is (= 3 (:count (:body (random-words svc {}))))))))

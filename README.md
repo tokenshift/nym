@@ -15,8 +15,9 @@ To start a web server for the application, run:
 ## Endpoints
 
   * GET `/`
-    Returns a random word.
+    Returns random words.
     Parameters:
+      * `offset`, `limit` - Control paging. Offset is 0-based.
       * `query`, `tags` - Filter what words to return. See Filters, below.
   * GET `/words`
     Returns all words, with their tags.
@@ -36,4 +37,25 @@ To start a web server for the application, run:
 
 ## Filters
 
-TODO
+### Query
+
+A glob-style string to match words by. For example, `word*` would match 'word',
+'words', or 'wordy', but not 'unword'.
+
+Multiple asterisks can be included; each will match zero-or-more characters.
+
+Without any asterisks, the filter behaves as though there was one asterisk on
+the end; e.g. `word` and `word*` are equivalent.
+
+### Tags
+
+Takes an S-expression of `and`, `or`, and `not` predicates on exact tags. As an
+example:
+
+  (or (and (not Tag 1, Tag 2) Tag 3, Tag 4) (and Tag 5, Tag 6 (not Tag 7, Tag 8, Tag 9)))
+
+or
+
+  (and Surname (or Greek, Roman) (not Etruscan))
+
+Since tags can include whitespace, commas are required as terminators.

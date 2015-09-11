@@ -15,11 +15,11 @@
                                 'word*' would match 'word', 'words', or 'wordy',
                                 but not 'unword'.
                               * :tags
-                                Filters returned words by tags. Accepts a TBD grammar
-                                of boolean operations on tags.")
-  (random-word [this options] "Returns a single random word from the dictionary.
-                               Accepts the same :query and :tags options as
-                               `get-words` (but not :limit and :offset).")
+                                Filters returned words by tags. Accepts an
+                                S-expression grammar of boolean operations on tags.")
+  (random-words [this options] "Returns random words from the dictionary.
+                                Accepts the same :query, :tags, and :limit
+                                options as get-words (but not :offset).")
   (del-word [this word]       "Removes a word (and all of its tags) from the dictionary.")
   (del-tags [this word tags]  "Removes the listed tags from a word.")
   (put-word [this word tags]  "Adds a word and its tags to the dictionary.")
@@ -54,20 +54,14 @@
                          :error "NOT FOUND"})
               404)))
   (get-words [this {:strs [offset limit query tags] :or {offset 0 limit 10} :as params}]
-    (let [{:keys [count words]} (get-db-words nym-db (assoc params "limit" limit))]
-      (response (assoc (get-db-words nym-db (assoc params "limit" limit))
-                       :success true))))
-  (random-word [this options]
-    (let [{:keys [count words]} (get-db-words nym-db (select-keys options ["query" "tags"]))
-          word (when (> count 0) (nth words (rand-int count)))]
-      (if word
-        (response {:success true
-                   :count count
-                   :word word})
-        (status (response {:success false
-                           :count 0
-                           :error "NOT FOUND"})
-                404))))
+    (response (assoc (get-db-words nym-db (assoc params "limit" limit))
+                     :success true)))
+  (random-words [this {:strs [limit query tags] :or {limit 10} :as params}]
+    (let [{:keys [count words]} (get-db-words nym-db (select-keys params ["query" "tags"]))]
+      (response {:count count
+                 :limit (Integer. limit)
+                 :words (take (Integer. limit) (shuffle words))
+                 :success true})))
   (del-word [this word]
     (db/del-word! nym-db word)
     (response {:success true}))
