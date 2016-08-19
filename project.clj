@@ -15,6 +15,7 @@
                  [pandect "0.5.3"]]
   :plugins [[lein-ring "0.8.13"]]
   :ring {:handler nym.handler/app}
+  :uberjar-name "sprint-poker-standalone.jar"
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring-mock "0.1.5"]]}})
