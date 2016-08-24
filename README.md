@@ -2,64 +2,70 @@
 
 Name/word database and random name generator.
 
-## Running
+## Installation
 
-You will need [Leiningen][] 2.0.0 or above installed.
+```
+$ go install github.com/tokenshift/nym
+```
 
-[leiningen]: https://github.com/technomancy/leiningen
+## Usage
 
-To start a web server for the application, run:
+Add a name and one or more tags:
 
-    lein ring server-headless
+```
+$ nym put {name} [-t {tag}]...
 
-## Endpoints
+```
 
-  * GET `/`
-    Returns random words.
-    Parameters:
-      * `limit` - Limits the number of results to return. Defaults to 10.
-      * `query`, `tags` - Filter what words to return. See Filters, below.
-  * GET `/words`
-    Returns all words, with their tags.
-    Parameters:
-      * `offset`, `limit` - Control paging. Offset is 0-based.
-      * `query`, `tags` - Filter what words to return. See Filters, below.
-  * PUT `/words/{word}`
-    Creates a word, if it does not already exist.
-  * DELETE `/words/{word}`
-    Deletes a word.
-  * PUT `/words/{word}/{tag}`
-    Adds a tag to a word, creating both if necessary.
-  * DELETE `/words/{word}/{tag}`
-    Removes a tag from a name.
-  * GET `/tags`
-    Returns all tags (without associated words).
-  * GET `/random`
-    Returns a continuous stream of random words.
-    Parameters:
-      * `query`, `tags` - Filter what words to return. See Filters, below.
+Remove one or more tags from a name:
 
-## Filters
+```
+$ nym untag Kostya -t Rusisan
+```
 
-### Query
+Delete a name from the database (along with all of its tags):
 
-A glob-style string to match words by. For example, `word*` would match 'word',
-'words', or 'wordy', but not 'unword'.
+```
+$ nym rm Kostya
+```
 
-Multiple asterisks can be included; each will match zero-or-more characters.
+Get all of the tags associated with a name:
 
-Without any asterisks, the filter behaves as though there was one asterisk on
-the end; e.g. `word` and `word*` are equivalent.
+```
+$ nym tags Marinos
+Surname
+Greek
+Male
+```
 
-### Tags
+Get a random name:
 
-Takes an S-expression of `and`, `or`, and `not` predicates on exact tags. As an
-example:
+```
+$ nym rand
+Alan
+```
 
-  (or (and (not Tag 1, Tag 2) Tag 3, Tag 4) (and Tag 5, Tag 6 (not Tag 7, Tag 8, Tag 9)))
+Get a random name that matches the specified tags:
 
-or
+```
+$ nym rand -t "Male,Surname"
+Wilson
+```
 
-  (and Surname (or Greek, Roman) (not Etruscan))
+Stream a continuous list of random names (accepts -q and -Q):
 
-Since tags can include whitespace, commas are required as terminators.
+```
+$ nym rand -f
+Shayne
+Peony
+Methoataske
+Barna
+Amantius
+Amita
+Aslı
+Nicolasa
+Pearce
+Rafael
+Suzy
+...
+```
