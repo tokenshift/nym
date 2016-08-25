@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -107,6 +108,7 @@ func (self dbWrapper) GetTags(name string) []string {
 		return nil
 	})
 
+	sort.Strings(tags)
 	return tags
 }
 
