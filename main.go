@@ -23,11 +23,11 @@ var (
 	rmName    = rmCommand.Arg("name", "The name to add or update.").Required().String()
 
 	tagsCommand = kingpin.Command("tags", "Get all of the tags associated with a name.")
-	tagsName    = tagsCommand.Arg("name", "The name to add or update.").Required().String()
+	tagsName    = tagsCommand.Arg("name", "The name whose tags will be returned.").Required().String()
 
 	randCommand = kingpin.Command("rand", "Get a random name.")
 	randTags    = randCommand.Flag("tag", "Filter for names with the specified tags.").Short('t').Strings()
-	randStream  = randCommand.Flag("stream", "Stream a continuous list of random names.").Short('f').Bool()
+	randStream  = randCommand.Flag("stream", "Stream a continuous list of random names.").Short('s').Bool()
 )
 
 func main() {

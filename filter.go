@@ -15,7 +15,8 @@ func (_ AlwaysTrue) Match(name string, tags []string) bool {
 	return true
 }
 
-// "Normal" filters are disjunctions of conjunctions.
+// "Normal" filters are disjunctions of conjunctions, of the form:
+// "Foo|Bar,Fizz|Buzz", where `|` is a logical OR, and `,` is an AND.
 
 type Disjunction []Conjunction
 type Conjunction []string

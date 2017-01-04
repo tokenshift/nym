@@ -52,10 +52,10 @@ $ nym rand -t "Male,Surname"
 Wilson
 ```
 
-Stream a continuous list of random names (accepts -q and -Q):
+Stream a continuous list of random names (accepts `-t`):
 
 ```
-$ nym rand -f
+$ nym rand -s
 Shayne
 Peony
 Methoataske
@@ -67,5 +67,26 @@ Nicolasa
 Pearce
 Rafael
 Suzy
+...
+```
+
+Provide multiple tag filters to get a match for each on each line:
+
+```
+$ nym rand -s -t Female -t "Ancient Roman" -t Surname
+Hildegard Ennius Van Althuis
+Sabeen Alba Dawson
+Łucja Aetius Berg
+Deja Secundinus Leandres
+Melina Cato Moser
+Ilona Iulianus Franjic
+Arista Octavianus Kendrick
+Hena Caelia Petersson
+Krystyna Julia Traviss
+Élise Aelianus Dalca
+Fidela Livia Masin
+Magalie Marcellinus Moloney
+Miloslava Tiberius Ziemniak
+Thirza Antonia Werner
 ...
 ```

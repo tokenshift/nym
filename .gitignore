@@ -3,3 +3,5 @@
 *.sh
 *.txt
 nym
+crawl.rb
+populate.sh
