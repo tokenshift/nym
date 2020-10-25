@@ -5,3 +5,7 @@
 nym
 crawl.rb
 populate.sh
+*.exe
+*.sqlite3
+*.sqlite3-journal
+*.exe~

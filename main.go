@@ -6,79 +6,55 @@ import (
 	"os"
 	"time"
 
-	"github.com/alecthomas/kingpin"
-	"github.com/tokenshift/env"
+	"github.com/alecthomas/kong"
+	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-var (
-	putCommand = kingpin.Command("put", "Add a name and tags to the database.")
-	putName    = putCommand.Arg("name", "The name to add or update.").Required().String()
-	putTags    = putCommand.Flag("tag", "Tag to add to the name.").Short('t').Strings()
+var Args struct {
+	Put   PutCmd   `kong:"cmd,help='Add a name and tags to the database.'"`
+	Untag UntagCmd `kong:"cmd,help='Remove one or more tags from a name.'"`
+	Rm    RmCmd    `kong:"cmd,help='Delete a name and all of its tags.'"`
+	List  ListCmd  `kong:"cmd,name='ls',help='List all of the names in the database.'"`
+	Tags  TagsCmd  `kong:"cmd,help='Get all of the tags associated with a name.'"`
+	Rand  RandCmd  `kong:"cmd,help='Get a random name.'"`
 
-	untagCommand = kingpin.Command("untag", "Remove one or more tags from a name.")
-	untagName    = untagCommand.Arg("name", "The name to add or update.").Required().String()
-	untagTags    = untagCommand.Flag("tag", "Tag to add to the name.").Short('t').Strings()
-
-	rmCommand = kingpin.Command("rm", "Delete a name and all of its tags.")
-	rmName    = rmCommand.Arg("name", "The name to add or update.").Required().String()
-
-	tagsCommand = kingpin.Command("tags", "Get all of the tags associated with a name.")
-	tagsName    = tagsCommand.Arg("name", "The name whose tags will be returned.").Required().String()
-
-	randCommand = kingpin.Command("rand", "Get a random name.")
-	randTags    = randCommand.Flag("tag", "Filter for names with the specified tags.").Short('t').Strings()
-	randStream  = randCommand.Flag("stream", "Stream a continuous list of random names.").Short('s').Bool()
-)
-
-func main() {
-	dbFile, _ := env.GetDefault("DB_FILE", "names.db")
-
-	db, err := NewDB(dbFile)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(1)
-	}
-	defer db.Close()
-
-	rand.Seed(time.Now().UnixNano())
-
-	switch kingpin.Parse() {
-	case "put":
-		db.AddName(*putName)
-		for _, tag := range *putTags {
-			db.AddTag(*putName, tag)
-		}
-	case "untag":
-		for _, tag := range *untagTags {
-			db.RemoveTag(*untagName, tag)
-		}
-	case "rm":
-		db.RemoveName(*rmName)
-	case "tags":
-		for _, tag := range db.GetTags(*tagsName) {
-			fmt.Println(tag)
-		}
-	case "rand":
-		filters := ParseFilters(*randTags)
-
-		if *randStream {
-			for {
-				outputNames(db, filters)
-			}
-		} else {
-			outputNames(db, filters)
-		}
-	}
+	Filename string `kong:"arg name='filename',short='f',help='Database filename.',default='nym.sqlite3',type='path'"`
+	Verbose  bool   `kong:"arg name='verbose',short='v',help='Turn on verbose logging.'"`
+	Debug    bool   `kong:"arg name='debug',short='d',help='Turn on debug logging (including SQL queries).'"`
 }
 
-func outputNames(db DB, filters []Filter) {
-	for i, filter := range filters {
-		if i > 0 {
-			fmt.Print(" ")
-		}
+var Database *gorm.DB
 
-		fmt.Print(db.RandomName(filter))
+func main() {
+	rand.Seed(time.Now().UnixNano())
+
+	ctx := kong.Parse(&Args, kong.UsageOnMissing())
+
+	var err error
+
+	var logLevel logger.LogLevel
+
+	if Args.Debug {
+		logLevel = logger.Info
+	} else {
+		logLevel = logger.Silent
 	}
 
-	fmt.Println()
+	Database, err = gorm.Open(sqlite.Open(Args.Filename), &gorm.Config{
+		Logger: logger.Default.LogMode(logLevel),
+	})
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	Database.AutoMigrate(&Name{})
+	Database.AutoMigrate(&Tag{})
+
+	err = ctx.Run()
+	ctx.FatalIfErrorf(err)
 }

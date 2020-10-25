@@ -10,6 +10,10 @@ $ go install github.com/tokenshift/nym
 
 ## Usage
 
+```
+$ nym --help
+```
+
 Add a name and one or more tags:
 
 ```
