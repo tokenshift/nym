@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 
@@ -116,55 +115,35 @@ func (tags *TagsCmd) Run(ctx *kong.Context) error {
 }
 
 type RandCmd struct {
-	Tags   []string `kong:"name='tag',short='t',help='Filter for names with the specified tag(s).'"`
+	Tags   []string `kong:"name='tag',short='t',sep='none',help='Filter for names with the specified tag(s).'"`
 	Stream bool     `kong:"name='stream',short='s',help='Stream a continuous list of random names.'"`
 }
 
 func (rand *RandCmd) Run(ctx *kong.Context) error {
-	filters := ParseFilters(rand.Tags)
-
 	if rand.Stream {
 		for {
-			outputNames(filters)
+			outputRandomNames(rand.Tags)
 		}
 	} else {
-		outputNames(filters)
+		outputRandomNames(rand.Tags)
 	}
 
 	return nil
 }
 
-func outputNames(filters []Filter) {
+func outputRandomNames(filters []string) {
+	if len(filters) == 0 {
+		fmt.Println(getAnyRandomName())
+		return
+	}
+
 	for i, filter := range filters {
 		if i > 0 {
 			fmt.Print(" ")
 		}
 
-		fmt.Print(randomName(filter))
+		fmt.Print(getRandomName(filter))
 	}
 
 	fmt.Println()
-}
-
-func randomName(filter Filter) string {
-	// TODO: Redo this in a way that doesn't require fetching all names first,
-	// iterating through them. Turn `filter.go` into a way of generating DB
-	// queries, maybe?
-	var allNames []Name
-	Database.Preload("Tags", TagOrder).Find(&allNames)
-
-	matchedNames := make([]Name, 0, 1024)
-
-	for _, name := range allNames {
-		if filter.Match(name.Name, name.TagStrings()) {
-			matchedNames = append(matchedNames, name)
-		}
-	}
-
-	if len(matchedNames) == 0 {
-		return ""
-	}
-
-	name := matchedNames[rand.Intn(len(matchedNames))]
-	return name.Name
 }

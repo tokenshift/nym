@@ -65,3 +65,8 @@ func (t Tag) HasName(name string) bool {
 func TagOrder(db *gorm.DB) *gorm.DB {
 	return db.Order("tags.tag ASC")
 }
+
+type NameTag struct {
+	TagID  uint
+	NameID uint
+}
