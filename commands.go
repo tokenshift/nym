@@ -87,7 +87,7 @@ func (list *ListCmd) Run(ctx *kong.Context) error {
 	}
 
 	var names []Name
-	Database.Preload("Tags", TagOrder).Find(&names).Order("name DESC")
+	Database.Preload("Tags", TagOrder).Order("name ASC").Find(&names)
 
 	for _, name := range names {
 		if list.Tags {
