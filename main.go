@@ -20,6 +20,7 @@ var Args struct {
 	List  ListCmd  `kong:"cmd,name='ls',help='List all of the names in the database.'"`
 	Tags  TagsCmd  `kong:"cmd,help='Get all of the tags associated with a name.'"`
 	Rand  RandCmd  `kong:"cmd,help='Get a random name.'"`
+	Load  LoadCmd  `kong:"cmd,help='Load names and tags from a text file.'"`
 
 	Filename string `kong:"arg name='filename',short='f',help='Database filename.',default='nym.sqlite3',type='path'"`
 	Verbose  bool   `kong:"arg name='verbose',short='v',help='Turn on verbose logging.'"`

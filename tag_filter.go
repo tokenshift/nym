@@ -14,8 +14,10 @@ func getAnyRandomName() string {
 	}
 
 	r := rand.Intn(int(count))
+
 	var name Name
-	Database.First(&name).Offset(r)
+	Database.Offset(r).First(&name)
+
 	return name.Name
 }
 

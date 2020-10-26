@@ -24,13 +24,19 @@ $ nym put {name} [-t {tag}]...
 Remove one or more tags from a name:
 
 ```
-$ nym untag Kostya -t Rusisan
+$ nym untag Kostya Russian
 ```
 
 Delete a name from the database (along with all of its tags):
 
 ```
 $ nym rm Kostya
+```
+
+List all the names in the database (optionally with their tags):
+
+```
+$ nym ls [-t]
 ```
 
 Get all of the tags associated with a name:
@@ -93,4 +99,20 @@ Magalie Marcellinus Moloney
 Miloslava Tiberius Ziemniak
 Thirza Antonia Werner
 ...
+```
+
+Load names & tags from an input text stream with names and tags
+on alternating lings:
+
+```
+$ cat <<EOF
+> Name1
+> Tag1
+> Name1
+> Tag2
+> Name2
+> Tag1
+> Name2
+> Tag2
+> EOF | nym load
 ```

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -17,28 +18,35 @@ type PutCmd struct {
 }
 
 func (put *PutCmd) Run(ctx *kong.Context) error {
-	var name Name
-	Database.Preload("Tags").FirstOrCreate(&name, Name{Name: strings.TrimSpace(put.Name)})
-
-	for _, tagVal := range put.Tags {
-		tagVal = strings.TrimSpace(tagVal)
-
-		var tag Tag
-		Database.FirstOrCreate(&tag, Tag{Tag: tagVal})
-
-		if !name.HasTag(tagVal) {
-			name.Tags = append(name.Tags, tag)
-		}
-	}
-
-	Database.Save(&name)
+	PutNameTags(put.Name, put.Tags...)
 
 	if Args.Verbose {
+		var name Name
 		Database.Preload("Tags", TagOrder).First(&name, Name{Name: strings.TrimSpace(put.Name)})
 		fmt.Fprintf(os.Stderr, "%s: %s\n", name.Name, strings.Join(name.TagStrings(), ", "))
 	}
 
 	return nil
+}
+
+func PutNameTags(name string, tags ...string) {
+	name = strings.TrimSpace(name)
+
+	var n Name
+	Database.Preload("Tags").FirstOrCreate(&n, Name{Name: name})
+
+	for _, tagVal := range tags {
+		tagVal = strings.TrimSpace(tagVal)
+
+		var tag Tag
+		Database.FirstOrCreate(&tag, Tag{Tag: tagVal})
+
+		if !n.HasTag(tagVal) {
+			n.Tags = append(n.Tags, tag)
+		}
+	}
+
+	Database.Save(&n)
 }
 
 type UntagCmd struct {
@@ -146,4 +154,34 @@ func outputRandomNames(filters []string) {
 	}
 
 	fmt.Println()
+}
+
+type LoadCmd struct{}
+
+func (load *LoadCmd) Run(ctx *kong.Context) error {
+	scanner := bufio.NewScanner(os.Stdin)
+
+	var name, tag string
+
+	readName := true
+
+	for scanner.Scan() {
+		if readName {
+			name = strings.TrimSpace(scanner.Text())
+		} else {
+			tag = strings.TrimSpace(scanner.Text())
+
+			if name != "" && tag != "" {
+				if Args.Verbose {
+					fmt.Println(name, "=>", tag)
+				}
+
+				PutNameTags(name, tag)
+			}
+		}
+
+		readName = !readName
+	}
+
+	return nil
 }
