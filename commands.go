@@ -109,31 +109,62 @@ func (list *ListCmd) Run(ctx *kong.Context) error {
 }
 
 type TagsCmd struct {
-	Name string `kong:"arg,required,name='name',help='The name whose tags will be returned.'"`
+	Names []string `kong:"arg,required,name='name',help='The name(s) whose tags will be returned.'"`
 }
 
 func (tags *TagsCmd) Run(ctx *kong.Context) error {
-	var name Name
-	Database.Preload("Tags", TagOrder).FirstOrCreate(&name, Name{Name: strings.TrimSpace(tags.Name)})
-	for _, tag := range name.Tags {
-		fmt.Println(tag.Tag)
+	for _, n := range tags.Names {
+		if name, ok := getName(n); ok {
+			fmt.Print(name.Name, ":")
+			for i, tag := range name.Tags {
+				if i > 0 {
+					fmt.Print(",")
+				}
+
+				fmt.Print(" ", tag.Tag)
+			}
+			fmt.Println()
+		} else {
+			fmt.Printf("%s: NOT FOUND\n", strings.TrimSpace(n))
+		}
 	}
 
 	return nil
 }
 
+func getName(name string) (result Name, ok bool) {
+	tx := Database.Preload("Tags", TagOrder).First(&result, Name{Name: strings.TrimSpace(name)})
+
+	if tx.RowsAffected == 0 {
+		// Try a case-insensitive search
+		tx = Database.Preload("Tags", TagOrder).
+			Where("name LIKE ?", strings.TrimSpace(name)).
+			First(&result)
+	}
+
+	if tx.RowsAffected == 0 {
+		return result, false
+	}
+
+	return result, true
+}
+
 type RandCmd struct {
+	Number int      `kong:"short='n',xor='Number',default='1',help='Number of names to return. Defaults to 1.'"`
 	Tags   []string `kong:"name='tag',short='t',sep='none',help='Filter for names with the specified tag(s).'"`
-	Stream bool     `kong:"name='stream',short='s',help='Stream a continuous list of random names.'"`
+	Stream bool     `kong:"name='stream',short='s',xor='Number',help='Stream a continuous list of random names.'"`
 }
 
 func (rand *RandCmd) Run(ctx *kong.Context) error {
+	// TODO: Parse the filters once, instead of re-parsing them for every selection.
 	if rand.Stream {
 		for {
 			outputRandomNames(rand.Tags)
 		}
 	} else {
-		outputRandomNames(rand.Tags)
+		for i := 0; i < rand.Number; i++ {
+			outputRandomNames(rand.Tags)
+		}
 	}
 
 	return nil
@@ -141,7 +172,12 @@ func (rand *RandCmd) Run(ctx *kong.Context) error {
 
 func outputRandomNames(filters []string) {
 	if len(filters) == 0 {
-		fmt.Println(getAnyRandomName())
+		if name, ok := getAnyRandomName(); ok {
+			fmt.Println(name.Name)
+		} else {
+			fmt.Println("<NONE>")
+		}
+
 		return
 	}
 
@@ -150,7 +186,11 @@ func outputRandomNames(filters []string) {
 			fmt.Print(" ")
 		}
 
-		fmt.Print(getRandomName(filter))
+		if name, ok := getRandomName(filter); ok {
+			fmt.Print(name.Name)
+		} else {
+			fmt.Print("<NONE>")
+		}
 	}
 
 	fmt.Println()

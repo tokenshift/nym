@@ -22,9 +22,9 @@ var Args struct {
 	Rand  RandCmd  `kong:"cmd,help='Get a random name.'"`
 	Load  LoadCmd  `kong:"cmd,help='Load names and tags from a text file.'"`
 
-	Filename string `kong:"arg name='filename',short='f',help='Database filename.',default='nym.sqlite3',type='path'"`
-	Verbose  bool   `kong:"arg name='verbose',short='v',help='Turn on verbose logging.'"`
-	Debug    bool   `kong:"arg name='debug',short='d',help='Turn on debug logging (including SQL queries).'"`
+	Filename string `kong:"name='filename',short='f',help='Database filename.',default='nym.sqlite3',type='path'"`
+	Verbose  bool   `kong:"name='verbose',short='v',help='Turn on verbose output.'"`
+	Debug    bool   `kong:"name='debug',short='d',help='Turn on debug logging (including SQL queries).'"`
 }
 
 var Database *gorm.DB
@@ -32,7 +32,7 @@ var Database *gorm.DB
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	ctx := kong.Parse(&Args, kong.UsageOnMissing())
+	ctx := kong.Parse(&Args, kong.UsageOnError())
 
 	var err error
 

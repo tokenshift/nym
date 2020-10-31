@@ -5,23 +5,22 @@ import (
 	"strings"
 )
 
-func getAnyRandomName() string {
+func getAnyRandomName() (result Name, ok bool) {
 	var count int64
 	Database.Model(&Name{}).Count(&count)
 
 	if count == 0 {
-		return "<NONE>"
+		return result, false
 	}
 
 	r := rand.Intn(int(count))
 
-	var name Name
-	Database.Offset(r).First(&name)
+	Database.Preload("Tags").Offset(r).First(&result)
 
-	return name.Name
+	return result, true
 }
 
-func getRandomName(filterString string) string {
+func getRandomName(filterString string) (result Name, ok bool) {
 	// Step 1: Break the filter string into a disjunction of conjunctions of tags.
 	// => [["foo", "bar"],["fizz"],["bar","buzz"]]
 	filter := parseFilter(filterString)
@@ -67,14 +66,13 @@ func getRandomName(filterString string) string {
 
 	// Step 10: Pick a random name from the name IDs listed.
 	if (len(unionedDisjunctions)) == 0 {
-		return "<NONE>"
+		return result, false
 	}
 
 	r := rand.Intn(len(unionedDisjunctions))
 	nameId := unionedDisjunctions[r]
-	var name Name
-	Database.First(&name, nameId)
-	return name.Name
+	Database.Preload("Tags").First(&result, nameId)
+	return result, true
 }
 
 // parseFilter parses a filter string into a slice of slices of (tag) strings.
