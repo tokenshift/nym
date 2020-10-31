@@ -20,7 +20,7 @@ func getAnyRandomName() (result Name, ok bool) {
 	return result, true
 }
 
-func getRandomName(filterString string) (result Name, ok bool) {
+func getNameIdsFromFilter(filterString string) []uint {
 	// Step 1: Break the filter string into a disjunction of conjunctions of tags.
 	// => [["foo", "bar"],["fizz"],["bar","buzz"]]
 	filter := parseFilter(filterString)
@@ -43,34 +43,32 @@ func getRandomName(filterString string) (result Name, ok bool) {
 	// Step 6: Get all NameTags with matching tag IDs, and turn into a lookup
 	// table of tag IDs to lists of matching name IDs (map[uint][]uint).
 	tagNameIds := getNameIdsFromTagIds(flattenedTagIds)
-	// fmt.Println("HERE6:", tagNameIds)
 
 	// Step 7: For each tag ID in the filter, convert it into a list of name IDs
 	// that have that tag. This should produce a [][][]uint--a disjunction of
 	// conjunctions of lists of name IDs.
 	// => [[[1,2,3,4],[2,4,7]],[[5]],[[2,4,7],[8]]]
 	filterNameLists := convertFilterTagIdsToNameLists(tagNameIds, filterTagIds)
-	// fmt.Println("HERE7:", filterNameLists)
 
 	// Step 8: Replace each conjunction (a list of lists of name IDs) with the
 	// intersection of those lists, containing only the name IDs that show up
 	// in all the lists in the conjunction.
 	// => [[2,4],[5],[]]
 	intersectedConjunctions := intersectNameListConjunctions(filterNameLists)
-	// fmt.Println("HERE8:", intersectedConjunctions)
 
 	// Step 9: Perform a union of the lists of name IDs the disjunction now contains.
 	// => [2,4,5]
 	unionedDisjunctions := unionNameLists(intersectedConjunctions)
-	// fmt.Println("HERE9:", unionedDisjunctions)
+	return unionedDisjunctions
+}
 
-	// Step 10: Pick a random name from the name IDs listed.
-	if (len(unionedDisjunctions)) == 0 {
+func getRandomName(nameIds []uint) (result Name, ok bool) {
+	if (len(nameIds)) == 0 {
 		return result, false
 	}
 
-	r := rand.Intn(len(unionedDisjunctions))
-	nameId := unionedDisjunctions[r]
+	r := rand.Intn(len(nameIds))
+	nameId := nameIds[r]
 	Database.Preload("Tags").First(&result, nameId)
 	return result, true
 }

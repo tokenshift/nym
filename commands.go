@@ -156,21 +156,26 @@ type RandCmd struct {
 }
 
 func (rand *RandCmd) Run(ctx *kong.Context) error {
-	// TODO: Parse the filters once, instead of re-parsing them for every selection.
+	// Convert all of the filters into lists of matching Name IDs to pick from.
+	filters := make([][]uint, len(rand.Tags))
+	for i, tag := range rand.Tags {
+		filters[i] = getNameIdsFromFilter(tag)
+	}
+
 	if rand.Stream {
 		for {
-			outputRandomNames(rand.Tags)
+			outputRandomNames(filters)
 		}
 	} else {
 		for i := 0; i < rand.Number; i++ {
-			outputRandomNames(rand.Tags)
+			outputRandomNames(filters)
 		}
 	}
 
 	return nil
 }
 
-func outputRandomNames(filters []string) {
+func outputRandomNames(filters [][]uint) {
 	if len(filters) == 0 {
 		if name, ok := getAnyRandomName(); ok {
 			fmt.Println(name.Name)
@@ -181,12 +186,12 @@ func outputRandomNames(filters []string) {
 		return
 	}
 
-	for i, filter := range filters {
+	for i, nameIds := range filters {
 		if i > 0 {
 			fmt.Print(" ")
 		}
 
-		if name, ok := getRandomName(filter); ok {
+		if name, ok := getRandomName(nameIds); ok {
 			fmt.Print(name.Name)
 		} else {
 			fmt.Print("<NONE>")
