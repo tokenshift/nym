@@ -106,13 +106,13 @@ on alternating lings:
 
 ```
 $ cat <<EOF
-> Name1
-> Tag1
-> Name1
-> Tag2
-> Name2
-> Tag1
-> Name2
-> Tag2
-> EOF | nym load
+Name1
+Tag1
+Name1
+Tag2
+Name2
+Tag1
+Name2
+Tag2
+EOF | nym load
 ```
